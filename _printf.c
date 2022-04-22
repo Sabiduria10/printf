@@ -1,48 +1,49 @@
-#include "holberton.h"
-#include <stddef.h>
-#include <stdlib.h>
-#include <stdio.h>
+#include "main.h"
+
 /**
- * _printf - Build out the printf function
- * @format: string passed with possible format specifiers
- * Return: number of characters printed
+ * _printf - prints anything
+ * @format: the format string
+ *
+ * Return: number of bytes printed
  */
 int _printf(const char *format, ...)
 {
-	int i, blen, hlen;
-	double totalBuffer;
-	double *total;
-	va_list argp;
-	char buffer[BUFSIZE], *holder;
-	char *(*pointer_get_valid)(va_list);
+	int sum = 0;
+	va_list ap;
+	char *p, *start;
+	params_t params = PARAMS_INIT;
 
-	for (i = 0; i < BUFSIZE; i++)
+	va_start(ap, format);
+
+	if (!format || (format[0] == '%' && !format[1]))
+		return (-1);
+	if (format[0] == '%' && format[1] == ' ' && !format[2])
+		return (-1);
+	for (p = (char *)format; *p; p++)
 	{
-		buffer[i] = 0;
-	}
-	totalBuffer = 0;
-	pointer_get_valid = NULL;
-	total = &totalBuffer;
-	va_start(argp, format);
-	for (i = blen = hlen = 0; format && format[i]; i++)
-	{
-		if (format[i] == '%')
+		init_params(&params, ap);
+		if (*p != '%')
 		{
-			pointer_get_valid = get_valid_type(format[i + 1]);
-			holder = (pointer_get_valid == NULL) ?
-				found_nothing(format[i + 1]) :
-				pointer_get_valid(argp);
-			hlen = _strlen(holder);
-			blen = alloc_buffer(holder, hlen, buffer, blen, total);
-			i++;
+			sum += _putchar(*p);
+			continue;
 		}
+		start = p;
+		p++;
+		while (get_flag(p, &params)) /* while char at p is flag char */
+		{
+			p++; /* next char */
+		}
+		p = get_width(p, &params, ap);
+		p = get_precision(p, &params, ap);
+		if (get_modifier(p, &params))
+			p++;
+		if (!get_specifier(p))
+			sum += print_from_to(start, p,
+				params.l_modifier || params.h_modifier ? p - 1 : 0);
 		else
-		{
-			holder = ctos(format[i]);
-			blen = alloc_buffer(holder, 1, buffer, blen, total);
-		}
+			sum += get_print_func(p, ap, &params);
 	}
-	va_end(argp);
-	_puts(buffer, blen);
-	return (totalBuffer + blen);
+	_putchar(BUF_FLUSH);
+	va_end(ap);
+	return (sum);
 }
